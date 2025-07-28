@@ -88,3 +88,59 @@ Pero ambos trabajan juntos para hacer que tu software sea fuerte, escalable y ma
 SÓLID: Son principios de diseño de clases y objetos dentro del código (más a nivel de detalle).
 Arquitectura Limpia: Es una forma de organizar el sistema completo (más a nivel estructural).
 👉 SÓLID es una parte importante dentro de una Arquitectura Limpia, pero no son lo mismo.
+
+
+ESTRUCTURA EN CLEAN ARCHITECTURE
+🟢 1. Capa de Dominio (Domain Layer)
+No conoce nada de frameworks ni tecnología externa (como Cloudinary o Spring Boot).
+
+Entidad: Curso
+
+Repositorio (Interface): CursoRepository
+
+Curso guardar(Curso curso);
+
+Servicio (Use Case / Interactor): CrearCursoUseCase
+
+Método: Curso ejecutar(CrearCursoRequest request);
+
+🟡 2. Capa de Aplicación (Application Layer)
+Coordina lógica y casos de uso, orquesta la interacción entre capas.
+
+DTOs / Request Models:
+
+CrearCursoRequest (nombre, descripción, archivo imagen, etc.)
+
+CursoResponse
+
+Interfaces para servicios externos:
+
+CloudinaryService
+
+String subirImagen(MultipartFile imagen);
+
+🔵 3. Capa de Infraestructura (Infrastructure Layer)
+Implementaciones técnicas.
+
+Repositorio de base de datos (implementación):
+
+CursoRepositoryImpl implements CursoRepository
+
+Usa JPA, MongoDB u otro ORM para guardar.
+
+Servicio de Cloudinary:
+
+CloudinaryServiceImpl implements CloudinaryService
+
+Usa el SDK de Cloudinary para subir imágenes.
+
+🔴 4. Capa de Entrada (Interface/Controller Layer)
+Puntos de entrada como REST API.
+
+Controlador REST: CursoController
+
+POST /cursos
+
+Recibe formulario con datos e imagen.
+
+Llama a CrearCursoUseCase con un CrearCursoRequest.
