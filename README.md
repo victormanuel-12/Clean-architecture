@@ -24,17 +24,144 @@ Todo lo demás (como controladores, base de datos, interfaces gráficas) depende
 Esto hace que el sistema sea más fácil de probar, modificar y entender.
 
 ## ¿Qué son los principios SÓLID (SOLID)?
-Es un conjunto de 5 principios para escribir buen código orientado a objetos. Son:
+Es un conjunto de 5 principios para escribir buen código mantenible y escalable orientado a objetos. Son:
 
-- S: Single Responsibility Principle → Una clase debe tener una sola razón para cambiar.
+- S: Principio de responsabilidad única → Una clase debe tener una sola razón para cambiar una sola responsabilidad.
+  ¿Cómo saber que una clase debe dividirse?
+  - ¿Tiene más de una razón para cambiar? (SRP)
+    Si al modificar una cosa (por ejemplo, la lógica de negocio), terminas afectando otra (por ejemplo, el envío de             emails), es hora de dividir.
+  🔎 Ejemplo:
+    Tienes una clase que guarda usuarios y también envía correos. Si mañana cambia el proveedor de correo, ¿por qué             tendrías que tocar la lógica de guardar usuarios?
+    👉 ¡Divídela!
+  -  2. ¿Tiene métodos que no están relacionados entre sí?
+      Si los métodos no comparten lógica ni propósito claro, probablemente estás mezclando responsabilidades.
+En este caso si comparten
+```
+public void guardarUsuario(Usuario u) { ... }
+public void eliminarUsuario(String id) { ... }
+public void actualizarUsuario(Usuario u) { ... }
+```
+Sí comparten una responsabilidad clara: gestionar entidades de tipo Usuario.
+Entonces sí deben estar en la misma clase, como por ejemplo un UsuarioService o un UsuarioRepository (según la capa de tu arquitectura).
+Esto no comparten una misma responsabilidad
+```
+public class Utilidades {
+    
+    public void calcularImpuesto(double monto) {
+        System.out.println("Impuesto calculado: " + monto * 0.18);
+    }
 
-- O: Open/Closed Principle → El código debe estar abierto a extensión, pero cerrado a modificación.
+    public void enviarCorreo(String mensaje) {
+        System.out.println("Enviando correo: " + mensaje);
+    }
 
-- L: Liskov Substitution Principle → Las subclases deben poder reemplazar a sus clases padre sin problemas.
+    public void generarReporteExcel() {
+        System.out.println("Reporte en Excel generado.");
+    }
+}
+```
+- O: Principio Abierto/Cerrado → El código debe estar abierto a extensión, pero cerrado a modificación. ES DECIR
+   puedes agregar nuevas funcionalidades sin cambiar el código existente.
+  EJEMPLO
+  puedeser que se cree una interfaz para generar reporte y se creen implementaciones de esta interfaz para pdf y excel cosa que si se quiere agregar otra clase de generacion de reporte no se va a necesitar modificar lo que ya gay sino solo se agregara la nueva implementacion
+  Otro ejemplo es  Imagina una clase CarritoCompras que calcula el total aplicando descuentos según el tipo de cliente: si se agregga otro tipo de cliente se tendria que modificar lo que ya hay
+  se haria mejor se crearia una interfaz EstrategiaDescuento
+  interface EstrategiaDescuento {
+    double aplicarDescuento(double subtotal);
 
-- Interface Segregation Principle → No obligues a una clase a implementar métodos que no usa.
+}
+  y se haria implementaciones  como por ejemplo
+  ```
+  class DescuentoRegular implements EstrategiaDescuento {
+    public double aplicarDescuento(double subtotal) {
+        return subtotal * 0.95;
+    }
+}
+```
+  COSA QUE SI SE QUIERE AGREGAR UN NUEVO TIEPO DE DESCUENTO SOLO SE AGREGARIA UNA NUEVA IMPLEMENTACION
 
-- D: Dependency Inversion Principle → Las clases deben depender de abstracciones, no de cosas concretas.
+
+- L: Principio de sustitución de Liskov → Las subclases deben poder reemplazar a sus clases padre sin problemas.
+  Es decir La subclase debe cumplir con todas las expectativas de comportamiento de la superclase
+  No puede relajar precondiciones ni fortalecer postcondiciones
+    EJEMPLO
+ ```
+ class Hotel {
+    /**
+     * Reserva una habitación
+     * @param dias Debe ser >= 1 (precondición)
+     * @return Número de confirmación (postcondición: nunca es null)
+     */
+    String reservar(int dias) {
+        if (dias < 1) throw new IllegalArgumentException();
+        return "H-" + UUID.randomUUID();
+    }
+
+}class HotelEconómico extends Hotel {
+    @Override
+    String reservar(int dias) {
+        // ¡ERROR! Permite dias = 0 (relaja la precondición)
+        if (dias < 0) throw new IllegalArgumentException();
+        return "E-" + dias; // Además cambia el formato
+    }
+}
+```
+  
+
+- I:Principio de segregación de interfaz → No obligues a una clase a implementar métodos que no usa.
+  Mejor Divide interfaces grandes en otras más pequeñas y específicas.
+
+ ```
+interface IMultifuncional {
+    void imprimir();
+    void escanear();
+    void enviarFax();}
+```
+
+```
+interface IImpresora {
+    void imprimir();
+}
+
+interface IEscanner {
+    void escanear();
+}
+
+interface IFax {
+    void enviarFax();
+}
+
+// Ahora las clases implementan SOLO lo que necesitan:
+class ImpresoraAvanzada implements IImpresora, IEscanner {
+    public void imprimir() { /* Lógica */ }
+    public void escanear() { /* Lógica */ }
+}
+
+class ImpresoraBasica implements IImpresora {
+    public void imprimir() { /* Solo imprime */ }
+}
+
+class MaquinaOficina implements IImpresora, IEscanner, IFax {
+    public void imprimir() { /* Lógica */ }
+    public void escanear() { /* Lógica */ }
+    public void enviarFax() { /* Lógica */ }
+}
+
+class ImpresoraAvanzada implements IMultifuncional {
+    public void imprimir() { /* Lógica de impresión */ }
+    public void escanear() { /* Lógica de escaneo */ }
+    public void enviarFax() { /* ¡Pero esta impresora NO envía fax! */ }
+}
+```
+
+- D: Principio de inversión de dependencia → Las clases deben depender de abstracciones(interfaz o clases abstractas), no de cosas concretas. como clases
+   DONDE APLICARLO
+  Cuando una clase depende de servicios externos (APIs, bases de datos, librerías).
+
+  Cuando necesitas cambiar implementaciones fácilmente (ej: desarrollo vs producción).
+
+  Al trabajar con frameworks de inyección de dependencias (Spring, Angular, etc.).
+  
 
 Estos principios ayudan a escribir código limpio, flexible y sin errores comunes.
 
